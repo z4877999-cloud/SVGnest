@@ -65,6 +65,7 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 		}		
 		
 		var i, j, k, m, n, path;
+		var preferVertical = self.config && self.config.gravityDirection === 'vertical';
 		
 		// rotate paths by given rotation
 		var rotated = [];
@@ -120,13 +121,15 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 				
 				var position = null;
 				if(placed.length == 0){
-					// first placement, put it on the left
+					// first placement, anchor towards the gravity direction
 					for(j=0; j<binNfp.length; j++){
 						for(k=0; k<binNfp[j].length; k++){
-							if(position === null || binNfp[j][k].x-path[0].x < position.x ){
+							var candidateX = binNfp[j][k].x-path[0].x;
+							var candidateY = binNfp[j][k].y-path[0].y;
+							if(position === null || (preferVertical ? candidateY < position.y : candidateX < position.x)){
 								position = {
-									x: binNfp[j][k].x-path[0].x,
-									y: binNfp[j][k].y-path[0].y,
+									x: candidateX,
+									y: candidateY,
 									id: path.id,
 									rotation: path.rotation
 								}
@@ -212,10 +215,10 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 				
 				// choose placement that results in the smallest bounding box
 				// could use convex hull instead, but it can create oddly shaped nests (triangles or long slivers) which are not optimal for real-world use
-				// todo: generalize gravity direction
+				// gravityDirection controls whether width or height is prioritized
 				var minwidth = null;
 				var minarea = null;
-				var minx = null;
+				var minprimary = null;
 				var nf, area, shiftvector;
 
 				for(j=0; j<finalNfp.length; j++){
@@ -246,15 +249,16 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 						
 						var rectbounds = GeometryUtil.getPolygonBounds(allpoints);
 						
-						// weigh width more, to help compress in direction of gravity
-						area = rectbounds.width*2 + rectbounds.height;
-						
-						if(minarea === null || area < minarea || (GeometryUtil.almostEqual(minarea, area) && (minx === null || shiftvector.x < minx))){
-							minarea = area;
-							minwidth = rectbounds.width;
-							position = shiftvector;
-							minx = shiftvector.x;
-						}
+						// weigh the primary gravity direction more
+						area = preferVertical ? (rectbounds.height*2 + rectbounds.width) : (rectbounds.width*2 + rectbounds.height);
+						var primaryCoord = preferVertical ? shiftvector.y : shiftvector.x;
+							
+						if(minarea === null || area < minarea || (GeometryUtil.almostEqual(minarea, area) && (minprimary === null || primaryCoord < minprimary))){
+								minarea = area;
+								minwidth = rectbounds.width;
+								position = shiftvector;
+								minprimary = primaryCoord;
+							}
 					}
 				}
 				if(position){
