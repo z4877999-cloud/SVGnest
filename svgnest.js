@@ -33,6 +33,7 @@
 			populationSize: 10,
 			mutationRate: 10,
 			gravityDirection: 'horizontal',
+			gravityOrigin: 'top',
 			useHoles: false,
 			exploreConcave: false
 		};
@@ -111,6 +112,10 @@
 
 			if(c.gravityDirection === 'vertical' || c.gravityDirection === 'horizontal'){
 				config.gravityDirection = c.gravityDirection;
+			}
+
+			if(c.gravityOrigin === 'top' || c.gravityOrigin === 'bottom'){
+				config.gravityOrigin = c.gravityOrigin;
 			}
 			
 			if('useHoles' in c){

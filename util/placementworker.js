@@ -66,6 +66,7 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 		
 		var i, j, k, m, n, path;
 		var preferVertical = self.config && self.config.gravityDirection === 'vertical';
+		var preferBottom = preferVertical && self.config && self.config.gravityOrigin === 'bottom';
 		var binWidth = self.binPolygon && self.binPolygon.width ? self.binPolygon.width : null;
 		var binHeight = self.binPolygon && self.binPolygon.height ? self.binPolygon.height : null;
 		
@@ -128,7 +129,9 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 						for(k=0; k<binNfp[j].length; k++){
 							var candidateX = binNfp[j][k].x-path[0].x;
 							var candidateY = binNfp[j][k].y-path[0].y;
-							if(position === null || (preferVertical ? candidateY < position.y : candidateX < position.x)){
+							if(position === null || (
+								preferVertical ? (preferBottom ? candidateY > position.y : candidateY < position.y) : candidateX < position.x
+							)){
 								position = {
 									x: candidateX,
 									y: candidateY,
@@ -261,7 +264,7 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 							else{
 								area = rectbounds.width*2 + rectbounds.height;
 							}
-							var primaryCoord = preferVertical ? shiftvector.y : shiftvector.x;
+							var primaryCoord = preferVertical ? (preferBottom ? -shiftvector.y : shiftvector.y) : shiftvector.x;
 								
 							if(minarea === null || area < minarea || (GeometryUtil.almostEqual(minarea, area) && (minprimary === null || primaryCoord < minprimary))){
 								minarea = area;
