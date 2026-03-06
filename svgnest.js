@@ -32,6 +32,7 @@
 			rotations: 4,
 			populationSize: 10,
 			mutationRate: 10,
+			gravityDirection: 'horizontal',
 			useHoles: false,
 			exploreConcave: false
 		};
@@ -106,6 +107,10 @@
 			
 			if(c.mutationRate && parseInt(c.mutationRate) > 0){
 				config.mutationRate = parseInt(c.mutationRate);
+			}
+
+			if(c.gravityDirection === 'vertical' || c.gravityDirection === 'horizontal'){
+				config.gravityDirection = c.gravityDirection;
 			}
 			
 			if('useHoles' in c){
@@ -333,7 +338,7 @@
 				env: {
 					binPolygon: binPolygon,
 					searchEdges: config.exploreConcave,
-					useHoles: config.useHoles
+				useHoles: config.useHoles
 				},
 				evalPath: 'util/eval.js'
 			});
@@ -662,7 +667,7 @@
 				}
 								
 				return id;
-			};
+		};
 			
 			return polygons;
 		};
