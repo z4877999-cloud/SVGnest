@@ -65,9 +65,6 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 		}		
 		
 		var i, j, k, m, n, path;
-		var preferVertical = self.config && self.config.gravityDirection === 'vertical';
-		var binWidth = self.binPolygon && self.binPolygon.width ? self.binPolygon.width : null;
-		var binHeight = self.binPolygon && self.binPolygon.height ? self.binPolygon.height : null;
 		
 		// rotate paths by given rotation
 		var rotated = [];
@@ -123,15 +120,13 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 				
 				var position = null;
 				if(placed.length == 0){
-					// first placement, anchor towards the gravity direction
+					// first placement, put it on the left
 					for(j=0; j<binNfp.length; j++){
 						for(k=0; k<binNfp[j].length; k++){
-							var candidateX = binNfp[j][k].x-path[0].x;
-							var candidateY = binNfp[j][k].y-path[0].y;
-							if(position === null || (preferVertical ? candidateY < position.y : candidateX < position.x)){
+							if(position === null || binNfp[j][k].x-path[0].x < position.x ){
 								position = {
-									x: candidateX,
-									y: candidateY,
+									x: binNfp[j][k].x-path[0].x,
+									y: binNfp[j][k].y-path[0].y,
 									id: path.id,
 									rotation: path.rotation
 								}
@@ -217,11 +212,10 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 				
 				// choose placement that results in the smallest bounding box
 				// could use convex hull instead, but it can create oddly shaped nests (triangles or long slivers) which are not optimal for real-world use
-				// gravityDirection controls whether width or height is prioritized
+				// todo: generalize gravity direction
 				var minwidth = null;
-				var minheight = null;
 				var minarea = null;
-				var minprimary = null;
+				var minx = null;
 				var nf, area, shiftvector;
 
 				for(j=0; j<finalNfp.length; j++){
@@ -252,24 +246,15 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 						
 						var rectbounds = GeometryUtil.getPolygonBounds(allpoints);
 						
-							// weigh the primary gravity direction more.
-							// In vertical mode, also reward larger width usage (smaller leftover width).
-							if(preferVertical){
-								var unusedWidth = binWidth ? Math.max(0, binWidth - rectbounds.width) : 0;
-								area = rectbounds.height*2 + unusedWidth;
-							}
-							else{
-								area = rectbounds.width*2 + rectbounds.height;
-							}
-							var primaryCoord = preferVertical ? shiftvector.y : shiftvector.x;
-								
-							if(minarea === null || area < minarea || (GeometryUtil.almostEqual(minarea, area) && (minprimary === null || primaryCoord < minprimary))){
-								minarea = area;
-								minwidth = rectbounds.width;
-								minheight = rectbounds.height;
-								position = shiftvector;
-								minprimary = primaryCoord;
-							}
+						// weigh width more, to help compress in direction of gravity
+						area = rectbounds.width*2 + rectbounds.height;
+						
+						if(minarea === null || area < minarea || (GeometryUtil.almostEqual(minarea, area) && (minx === null || shiftvector.x < minx))){
+							minarea = area;
+							minwidth = rectbounds.width;
+							position = shiftvector;
+							minx = shiftvector.x;
+						}
 					}
 				}
 				if(position){
@@ -279,14 +264,7 @@ function PlacementWorker(binPolygon, paths, ids, rotations, config, nfpCache){
 			}
 			
 			if(minwidth){
-				if(preferVertical){
-					var heightScore = binHeight ? (minheight/binHeight) : (minheight/binarea);
-					var unusedWidthScore = (binWidth && minwidth !== null) ? ((binWidth-minwidth)/binWidth) : 0;
-					fitness += heightScore + 0.25*unusedWidthScore;
-				}
-				else{
-					fitness += minwidth/binarea;
-				}
+				fitness += minwidth/binarea;
 			}
 			
 			for(i=0; i<placed.length; i++){
