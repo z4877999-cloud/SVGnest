@@ -32,8 +32,8 @@
 			rotations: 4,
 			populationSize: 10,
 			mutationRate: 10,
-			gravityDirection: 'horizontal',
-			gravityOrigin: 'top',
+			gravityDirection: 'vertical',
+			gravityOrigin: 'bottom',
 			useHoles: false,
 			exploreConcave: false
 		};
@@ -110,13 +110,7 @@
 				config.mutationRate = parseInt(c.mutationRate);
 			}
 
-			if(c.gravityDirection === 'vertical' || c.gravityDirection === 'horizontal'){
-				config.gravityDirection = c.gravityDirection;
-			}
-
-			if(c.gravityOrigin === 'top' || c.gravityOrigin === 'bottom'){
-				config.gravityOrigin = c.gravityOrigin;
-			}
+			// gravity strategy is fixed to vertical+bottom
 			
 			if('useHoles' in c){
 				config.useHoles = !!c.useHoles;
