@@ -204,6 +204,14 @@
 						c[key] = inputs[i].checked;
 					}
 				}
+
+				var selects = document.querySelectorAll('#config select');
+				for(i=0; i<selects.length; i++){
+					var selectKey = selects[i].getAttribute('data-config');
+					if(selectKey){
+						c[selectKey] = selects[i].value;
+					}
+				}
 				
 				window.SvgNest.config(c);
 				
@@ -568,6 +576,18 @@
 						
 						<input type="text" value="10" data-config="mutationRate" />
 						<h3>GA mutation rate</h3><span class="tooltip" title="Mutation rate (in percent) at each generation of the Genetic Algorithm. A 100% mutation rate is equivalent to random sampling">?</span>
+
+						<select data-config="gravityDirection">
+							<option value="horizontal" selected>Horizontal (minimize width)</option>
+							<option value="vertical">Vertical (minimize height)</option>
+						</select>
+						<h3>Gravity direction</h3><span class="tooltip" title="Primary compression axis for placement scoring">?</span>
+
+						<select data-config="gravityOrigin">
+							<option value="top" selected>Top</option>
+							<option value="bottom">Bottom</option>
+						</select>
+						<h3>Vertical origin</h3><span class="tooltip" title="When gravity direction is vertical, choose whether to anchor placements from the top or bottom of the bin">?</span>
 						
 						<input type="checkbox" class="checkbox" data-config="useHoles" />
 						<h3>Part in Part</h3><span class="tooltip" title="Place parts in the holes of other parts. This will take much longer to compute ">?</span>
