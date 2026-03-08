@@ -251,6 +251,59 @@
 		}
 		
 		this.launchWorkers = function(tree, binPolygon, config, progressCallback, displayCallback){
+			function polygonAreaWithHoles(polygon){
+				if(!polygon || polygon.length < 3){
+					return 0;
+				}
+
+				var area = Math.abs(GeometryUtil.polygonArea(polygon));
+				if(polygon.children && polygon.children.length > 0){
+					for(var i=0; i<polygon.children.length; i++){
+						area -= polygonAreaWithHoles(polygon.children[i]);
+					}
+				}
+
+				return Math.max(area, 0);
+			}
+
+			function placementHeightAndArea(placements, tree, binPolygon){
+				if(!placements || placements.length === 0){
+					return { usedArea: 0, sheetArea: 0 };
+				}
+
+				var usedArea = 0;
+				var sheetArea = 0;
+				var binWidth = binPolygon && binPolygon.width ? binPolygon.width : 0;
+
+				for(var i=0; i<placements.length; i++){
+					var maxY = null;
+
+					for(var j=0; j<placements[i].length; j++){
+						var placement = placements[i][j];
+						var part = tree[placement.id];
+						if(!part){
+							continue;
+						}
+
+						usedArea += polygonAreaWithHoles(part);
+
+						var rotated = GeometryUtil.rotatePolygon(part, placement.rotation || 0);
+						for(var k=0; k<rotated.length; k++){
+							var y = rotated[k].y + placement.y;
+							if(maxY === null || y > maxY){
+								maxY = y;
+							}
+						}
+					}
+
+					if(maxY !== null && binWidth > 0){
+						sheetArea += Math.max(maxY, 0)*binWidth;
+					}
+				}
+
+				return { usedArea: usedArea, sheetArea: sheetArea };
+			}
+
 			function shuffle(array) {
 			  var currentIndex = array.length, temporaryValue, randomIndex ;
 
@@ -573,20 +626,23 @@
 					
 					if(!best || bestresult.fitness < best.fitness){
 						best = bestresult;
-						
-						var placedArea = 0;
-						var totalArea = 0;
+
 						var numParts = placelist.length;
 						var numPlacedParts = 0;
-						
+						var utilization = 0;
+
 						for(i=0; i<best.placements.length; i++){
-							totalArea += Math.abs(GeometryUtil.polygonArea(binPolygon));
 							for(var j=0; j<best.placements[i].length; j++){
-								placedArea += Math.abs(GeometryUtil.polygonArea(tree[best.placements[i][j].id]));
 								numPlacedParts++;
 							}
 						}
-						displayCallback(self.applyPlacement(best.placements), placedArea/totalArea, numPlacedParts, numParts);
+
+						var utilizationStats = placementHeightAndArea(best.placements, tree, binPolygon);
+						if(utilizationStats.sheetArea > 0){
+							utilization = utilizationStats.usedArea/utilizationStats.sheetArea;
+						}
+
+						displayCallback(self.applyPlacement(best.placements), utilization, numPlacedParts, numParts);
 					}
 					else{
 						displayCallback();

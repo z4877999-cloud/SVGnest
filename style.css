@@ -293,6 +293,7 @@ width: 20em;
 position: absolute;
 top: 0;
 left: 24.5em;
+z-index: 5;
 background-color: #fff;
 border-radius: 0.5em;
 transition: max-height  0.5s;
