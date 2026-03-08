@@ -32,6 +32,8 @@
 			rotations: 4,
 			populationSize: 10,
 			mutationRate: 10,
+			gravityDirection: 'vertical',
+			gravityOrigin: 'bottom',
 			useHoles: false,
 			exploreConcave: false
 		};
@@ -107,6 +109,8 @@
 			if(c.mutationRate && parseInt(c.mutationRate) > 0){
 				config.mutationRate = parseInt(c.mutationRate);
 			}
+
+			// gravity strategy is fixed to vertical+bottom
 			
 			if('useHoles' in c){
 				config.useHoles = !!c.useHoles;
@@ -333,7 +337,7 @@
 				env: {
 					binPolygon: binPolygon,
 					searchEdges: config.exploreConcave,
-					useHoles: config.useHoles
+				useHoles: config.useHoles
 				},
 				evalPath: 'util/eval.js'
 			});
@@ -564,19 +568,43 @@
 					if(!best || bestresult.fitness < best.fitness){
 						best = bestresult;
 						
-						var placedArea = 0;
-						var totalArea = 0;
+						var allPartsArea = 0;
+						var utilizedSheetArea = 0;
 						var numParts = placelist.length;
 						var numPlacedParts = 0;
+
+						for(i=0; i<tree.length; i++){
+							allPartsArea += Math.abs(GeometryUtil.polygonArea(tree[i]));
+						}
 						
 						for(i=0; i<best.placements.length; i++){
-							totalArea += Math.abs(GeometryUtil.polygonArea(binPolygon));
+							var miny = null;
+							var maxy = null;
 							for(var j=0; j<best.placements[i].length; j++){
-								placedArea += Math.abs(GeometryUtil.polygonArea(tree[best.placements[i][j].id]));
+								var placement = best.placements[i][j];
+								var part = GeometryUtil.rotatePolygon(tree[placement.id], placement.rotation);
+								var shifty = placement.y;
+								for(var k=0; k<part.length; k++){
+									var y = part[k].y+shifty;
+									if(miny === null || y < miny){
+										miny = y;
+									}
+									if(maxy === null || y > maxy){
+										maxy = y;
+									}
+								}
 								numPlacedParts++;
 							}
+
+							if(miny !== null && maxy !== null && binPolygon.width){
+								utilizedSheetArea += binPolygon.width*Math.max(0, maxy-miny);
+							}
+							else{
+								utilizedSheetArea += Math.abs(GeometryUtil.polygonArea(binPolygon));
+							}
 						}
-						displayCallback(self.applyPlacement(best.placements), placedArea/totalArea, numPlacedParts, numParts);
+						var efficiency = utilizedSheetArea > 0 ? allPartsArea/utilizedSheetArea : 0;
+						displayCallback(self.applyPlacement(best.placements), efficiency, numPlacedParts, numParts);
 					}
 					else{
 						displayCallback();
@@ -662,7 +690,7 @@
 				}
 								
 				return id;
-			};
+		};
 			
 			return polygons;
 		};
